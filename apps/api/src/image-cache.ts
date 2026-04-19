@@ -1,6 +1,6 @@
 import type { DishImage } from "@mensa/shared";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
-import { dirname } from "node:path";
+import { basename, dirname, resolve } from "node:path";
 
 interface CacheStore {
   translations: Record<
@@ -48,7 +48,7 @@ export class FileImageCache implements ImageCacheShape {
   private storePromise: Promise<CacheStore> | null = null;
   private writeQueue = Promise.resolve();
 
-  constructor(private readonly fileUrl: URL = DEFAULT_CACHE_PATH) {}
+  constructor(private readonly filePath: string = DEFAULT_CACHE_PATH) {}
 
   async getTranslation(key: string): Promise<TranslationCacheEntry | null> {
     const store = await this.loadStore();
@@ -116,7 +116,7 @@ export class FileImageCache implements ImageCacheShape {
 
   private async readStore(): Promise<CacheStore> {
     try {
-      const file = await readFile(this.fileUrl, "utf-8");
+      const file = await readFile(this.filePath, "utf-8");
       return parseStore(file);
     } catch {
       return createEmptyStore();
@@ -130,9 +130,9 @@ export class FileImageCache implements ImageCacheShape {
     update(store);
 
     this.writeQueue = this.writeQueue.then(async () => {
-      await mkdir(dirname(this.fileUrl.pathname), { recursive: true });
+      await mkdir(dirname(this.filePath), { recursive: true });
       await writeFile(
-        this.fileUrl,
+        this.filePath,
         JSON.stringify(store, null, 2) + "\n",
         "utf-8",
       );
@@ -158,16 +158,23 @@ function parseStore(value: string): CacheStore {
   };
 }
 
-function resolveDefaultCachePath(): URL {
+function resolveDefaultCachePath(): string {
   const configuredPath = process.env.IMAGE_CACHE_PATH?.trim();
 
   if (configuredPath) {
-    return new URL(`file://${configuredPath}`);
+    return configuredPath;
   }
 
   if (process.env.NETLIFY) {
-    return new URL("file:///tmp/mensa-image-search-cache.json");
+    return "/tmp/mensa-image-search-cache.json";
   }
 
-  return new URL("../.cache/image-search-cache.json", import.meta.url);
+  const currentWorkingDirectory = process.cwd();
+  const appRoot =
+    basename(currentWorkingDirectory) === "api" &&
+    basename(dirname(currentWorkingDirectory)) === "apps"
+      ? currentWorkingDirectory
+      : resolve(currentWorkingDirectory, "apps/api");
+
+  return resolve(appRoot, ".cache/image-search-cache.json");
 }
