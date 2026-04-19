@@ -1,8 +1,8 @@
 import { computed, onMounted, ref } from "vue";
 
-import type { MenuResponse } from "@mensa/shared";
+import type { DayMenu, WeekMenuResponse } from "@mensa/shared";
 
-import { fetchMenu } from "../api";
+import { fetchWeekMenu } from "../api";
 import {
   buildWeekdaySelection,
   buildWeekdaySelectionFromDate,
@@ -10,32 +10,52 @@ import {
 
 export function useMenu() {
   const weekdaySelection = buildWeekdaySelection();
-  const menuCache = new Map<string, MenuResponse>();
-  const menu = ref<MenuResponse | null>(null);
+  const weekData = ref<WeekMenuResponse | null>(null);
   const loading = ref(true);
   const error = ref<string | null>(null);
   const selectedDate = ref(weekdaySelection.selectedDate);
   const weekdayOptions = ref(weekdaySelection.options);
   const weekLabel = ref(weekdaySelection.weekLabel);
+  const weekCache = new Map<string, WeekMenuResponse>();
 
-  async function loadMenu(day = "today") {
+  const currentDay = computed<DayMenu | null>(() => {
+    if (!weekData.value) return null;
+    return (
+      weekData.value.days.find((d) => d.serviceDate === selectedDate.value) ??
+      weekData.value.days[0] ??
+      null
+    );
+  });
+
+  const totalCategories = computed(
+    () => currentDay.value?.stats.totalCategories ?? 0,
+  );
+  const totalDishes = computed(() => currentDay.value?.stats.totalDishes ?? 0);
+  const freshnessLabel = computed(() =>
+    weekData.value?.isStale ? "Cached fallback" : "Live",
+  );
+  const selectedWeekday = computed(
+    () =>
+      weekdayOptions.value.find((day) => day.isoDate === selectedDate.value) ??
+      null,
+  );
+
+  async function loadWeek(week: "this_week" | "next_week" = "this_week") {
     loading.value = true;
     error.value = null;
 
     try {
-      const cacheKey = day;
-      const cached = menuCache.get(cacheKey);
-
+      const cached = weekCache.get(week);
       if (cached) {
-        menu.value = cached;
-        syncWeekdaySelection(cached.serviceDate);
+        weekData.value = cached;
+        syncWeekdaySelection(cached);
         return;
       }
 
-      const fetchedMenu = await fetchMenu("164", day);
-      menuCache.set(cacheKey, fetchedMenu);
-      menu.value = fetchedMenu;
-      syncWeekdaySelection(fetchedMenu.serviceDate);
+      const data = await fetchWeekMenu("164", week);
+      weekCache.set(week, data);
+      weekData.value = data;
+      syncWeekdaySelection(data);
     } catch (caughtError) {
       error.value =
         caughtError instanceof Error
@@ -46,38 +66,29 @@ export function useMenu() {
     }
   }
 
-  onMounted(loadMenu);
+  function selectDay(isoDate: string) {
+    selectedDate.value = isoDate;
+  }
 
-  const totalCategories = computed(
-    () => menu.value?.stats.totalCategories ?? 0,
-  );
-  const totalDishes = computed(() => menu.value?.stats.totalDishes ?? 0);
-  const freshnessLabel = computed(() =>
-    menu.value?.isStale ? "Cached fallback" : "Live from API",
-  );
-  const selectedWeekday = computed(
-    () =>
-      weekdayOptions.value.find((day) => day.isoDate === selectedDate.value) ??
-      null,
-  );
-
-  async function selectDay(day: string) {
-    if (day === selectedDate.value && menu.value) {
-      return;
+  function syncWeekdaySelection(data: WeekMenuResponse) {
+    const firstDate =
+      data.days.find((d) => d.serviceDate === selectedDate.value)
+        ?.serviceDate ?? data.days[0]?.serviceDate;
+    if (firstDate) {
+      const selection = buildWeekdaySelectionFromDate(firstDate);
+      if (!data.days.some((d) => d.serviceDate === selectedDate.value)) {
+        selectedDate.value = firstDate;
+      }
+      weekdayOptions.value = selection.options;
+      weekLabel.value = selection.weekLabel;
     }
-
-    await loadMenu(day);
   }
 
-  function syncWeekdaySelection(serviceDate: string) {
-    const selection = buildWeekdaySelectionFromDate(serviceDate);
-    selectedDate.value = serviceDate;
-    weekdayOptions.value = selection.options;
-    weekLabel.value = selection.weekLabel;
-  }
+  onMounted(loadWeek);
 
   return {
-    menu,
+    weekData,
+    currentDay,
     loading,
     error,
     selectedDate,
@@ -87,7 +98,7 @@ export function useMenu() {
     totalCategories,
     totalDishes,
     freshnessLabel,
-    loadMenu,
+    loadWeek,
     selectDay,
   };
 }

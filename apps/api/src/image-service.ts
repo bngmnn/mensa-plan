@@ -1,10 +1,19 @@
-import type { DishImageResponse } from "@mensa/shared";
-
 import {
   FileImageCache,
   type ImageCacheShape,
   type TranslationCacheEntry,
 } from "./image-cache";
+
+interface DishImageResponse {
+  query: string;
+  result: {
+    id: number;
+    title: string;
+    imageUrl: string;
+    sourceUrl: string;
+    source: "pixabay";
+  } | null;
+}
 
 interface PixabayImageSearchResponse {
   hits?: Array<{

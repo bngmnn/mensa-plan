@@ -1,8 +1,8 @@
 import {
-  dishImageResponseSchema,
   menuResponseSchema,
-  type DishImageResponse,
+  weekMenuResponseSchema,
   type MenuResponse,
+  type WeekMenuResponse,
 } from "@mensa/shared";
 
 export function getApiBaseUrl(): string {
@@ -27,19 +27,20 @@ export async function fetchMenu(
   return menuResponseSchema.parse(await response.json());
 }
 
-export async function fetchDishImage(
-  query: string,
-): Promise<DishImageResponse> {
+export async function fetchWeekMenu(
+  locationId = "164",
+  week: "this_week" | "next_week" = "this_week",
+): Promise<WeekMenuResponse> {
   const response = await fetch(
-    `${getApiBaseUrl()}/api/v1/images/search?q=${encodeURIComponent(query)}`,
+    `${getApiBaseUrl()}/api/v1/locations/${locationId}/menu/week?week=${week}`,
   );
 
   if (!response.ok) {
     const payload = (await response.json().catch(() => null)) as {
       error?: string;
     } | null;
-    throw new Error(payload?.error ?? "The dish image could not be loaded.");
+    throw new Error(payload?.error ?? "The week menu could not be loaded.");
   }
 
-  return dishImageResponseSchema.parse(await response.json());
+  return weekMenuResponseSchema.parse(await response.json());
 }

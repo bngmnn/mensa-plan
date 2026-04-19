@@ -1,9 +1,9 @@
-import type { MenuResponse } from "@mensa/shared";
+import type { MenuResponse, WeekMenuResponse } from "@mensa/shared";
 
 import { buildSourceUrl, getLocation } from "./locations";
 import type { MenuSource } from "./menu-source";
 import { StwhhMenuSource } from "./menu-source";
-import { listMenuServiceDates, parseMenuPage } from "./menu-parser";
+import { listMenuServiceDates, parseMenuPage, parseMenuPageAllDays } from "./menu-parser";
 
 const CACHE_TTL_MS = 10 * 60 * 1000;
 const UPSTREAM_FILTER_TOKENS = [
@@ -19,13 +19,20 @@ interface CacheEntry {
   updatedAt: number;
 }
 
+interface WeekCacheEntry {
+  menu: WeekMenuResponse;
+  updatedAt: number;
+}
+
 export interface MenuServiceShape {
   getMenu(locationId: string, day?: string): Promise<MenuResponse>;
+  getWeekMenu(locationId: string, week?: "this_week" | "next_week"): Promise<WeekMenuResponse>;
   getReadiness(locationId?: string): Promise<"warm" | "stale" | "empty">;
 }
 
 export class MenuService implements MenuServiceShape {
   private readonly cache = new Map<string, CacheEntry>();
+  private readonly weekCache = new Map<string, WeekCacheEntry>();
 
   constructor(
     private readonly source: MenuSource = new StwhhMenuSource(),
@@ -94,6 +101,46 @@ export class MenuService implements MenuServiceShape {
       return menu.isStale ? "stale" : "warm";
     } catch {
       return "empty";
+    }
+  }
+
+  async getWeekMenu(
+    locationId: string,
+    week: "this_week" | "next_week" = "this_week",
+  ): Promise<WeekMenuResponse> {
+    const location = getLocation(locationId);
+    const cacheKey = `${locationId}:week:${week}`;
+    const nowTimestamp = this.now().getTime();
+    const cached = this.weekCache.get(cacheKey);
+
+    if (cached && nowTimestamp - cached.updatedAt < CACHE_TTL_MS) {
+      return cached.menu;
+    }
+
+    try {
+      const html = await this.source.fetchMenuPage(locationId, week);
+      const menu = parseMenuPageAllDays({
+        html,
+        location,
+        fetchedAt: this.now().toISOString(),
+        sourceUrl: buildSourceUrl(locationId, week),
+      });
+
+      this.weekCache.set(cacheKey, { menu, updatedAt: nowTimestamp });
+      return menu;
+    } catch (error) {
+      if (cached) {
+        return {
+          ...cached.menu,
+          isStale: true,
+          warnings: [
+            ...cached.menu.warnings,
+            "Serving cached data because the upstream source could not be refreshed.",
+          ],
+        };
+      }
+
+      throw error;
     }
   }
 }

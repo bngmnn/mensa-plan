@@ -3,6 +3,7 @@ import type { Element as DomElement } from "domhandler";
 
 import type {
   Allergen,
+  DayMenu,
   Dish,
   Indicator,
   Location,
@@ -10,6 +11,7 @@ import type {
   MenuResponse,
   Price,
   SustainabilityMetric,
+  WeekMenuResponse,
 } from "@mensa/shared";
 
 const STWHH_ORIGIN = "https://www.stwhh.de";
@@ -301,4 +303,43 @@ function cleanText(value: string): string {
     .replace(/\u00a0/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+interface ParseWeekMenuInput {
+  html: string;
+  location: Location;
+  fetchedAt: string;
+  sourceUrl: string;
+}
+
+export function parseMenuPageAllDays({
+  html,
+  location,
+  fetchedAt,
+  sourceUrl,
+}: ParseWeekMenuInput): WeekMenuResponse {
+  const dates = listMenuServiceDates(html, location.id);
+  const days: DayMenu[] = dates.map((serviceDate) => {
+    const singleDay = parseMenuPage({
+      html,
+      location,
+      serviceDate,
+      fetchedAt,
+      sourceUrl,
+    });
+    return {
+      serviceDate: singleDay.serviceDate,
+      categories: singleDay.categories,
+      stats: singleDay.stats,
+    };
+  });
+
+  return {
+    location,
+    fetchedAt,
+    sourceUrl,
+    isStale: false,
+    warnings: days.length === 0 ? ["No meals were available for the requested period."] : [],
+    days,
+  };
 }

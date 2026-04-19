@@ -1,10 +1,9 @@
 import { describe, expect, it } from "vitest";
 
-import type { DishImageResponse, MenuResponse } from "@mensa/shared";
+import type { MenuResponse, WeekMenuResponse } from "@mensa/shared";
 
 import { buildApp } from "../src/app";
 import { buildSourceUrl, getLocation } from "../src/locations";
-import type { ImageServiceShape } from "../src/image-service";
 import type { MenuServiceShape } from "../src/menu-service";
 
 const sampleMenu: MenuResponse = {
@@ -40,39 +39,41 @@ const sampleMenu: MenuResponse = {
   },
 };
 
+const sampleWeekMenu: WeekMenuResponse = {
+  location: getLocation("164"),
+  fetchedAt: "2026-04-17T10:00:00.000Z",
+  sourceUrl: buildSourceUrl("164", "this_week"),
+  isStale: false,
+  warnings: [],
+  days: [
+    {
+      serviceDate: "2026-04-14",
+      categories: sampleMenu.categories,
+      stats: sampleMenu.stats,
+    },
+    {
+      serviceDate: "2026-04-17",
+      categories: sampleMenu.categories,
+      stats: sampleMenu.stats,
+    },
+  ],
+};
+
 function createMenuService(
   overrides?: Partial<MenuServiceShape>,
 ): MenuServiceShape {
   return {
     getMenu: async () => sampleMenu,
+    getWeekMenu: async () => sampleWeekMenu,
     getReadiness: async () => "warm",
     ...overrides,
   };
 }
 
-function createImageService(
-  overrides?: Partial<ImageServiceShape>,
-): ImageServiceShape {
-  return {
-    searchDishImage: async (query: string): Promise<DishImageResponse> => ({
-      query,
-      result: {
-        id: 123,
-        title: "Gemüsegulasch",
-        imageUrl: "https://cdn.pixabay.com/photo/123.jpg",
-        sourceUrl: "https://pixabay.com/photos/gemuesegulasch-123/",
-        source: "pixabay",
-      },
-    }),
-    ...overrides,
-  };
-}
-
 describe("buildApp", () => {
-  it("serves locations, menu data, and image search results", async () => {
+  it("serves locations, menu data, and week menu", async () => {
     const app = await buildApp({
       menuService: createMenuService(),
-      imageService: createImageService(),
     });
 
     const locationsResponse = await app.inject({
@@ -83,16 +84,16 @@ describe("buildApp", () => {
       method: "GET",
       url: "/api/v1/locations/164/menu?day=today",
     });
-    const imageResponse = await app.inject({
+    const weekResponse = await app.inject({
       method: "GET",
-      url: "/api/v1/images/search?q=Gem%C3%BCsegulasch",
+      url: "/api/v1/locations/164/menu/week?week=this_week",
     });
 
     expect(locationsResponse.statusCode).toBe(200);
     expect(menuResponse.statusCode).toBe(200);
-    expect(imageResponse.statusCode).toBe(200);
+    expect(weekResponse.statusCode).toBe(200);
     expect(menuResponse.json().stats.totalDishes).toBe(1);
-    expect(imageResponse.json().result.source).toBe("pixabay");
+    expect(weekResponse.json().days).toHaveLength(2);
 
     await app.close();
   });

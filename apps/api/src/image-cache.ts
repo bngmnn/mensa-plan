@@ -1,6 +1,13 @@
-import type { DishImage } from "@mensa/shared";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { basename, dirname, resolve } from "node:path";
+
+interface DishImage {
+  id: number;
+  title: string;
+  imageUrl: string;
+  sourceUrl: string;
+  source: "pixabay";
+}
 
 interface CacheStore {
   translations: Record<

@@ -62,17 +62,22 @@ export const menuResponseSchema = z.object({
   }),
 });
 
-export const dishImageSchema = z.object({
-  id: z.number().int().nonnegative(),
-  title: z.string(),
-  imageUrl: z.string().url(),
-  sourceUrl: z.string().url(),
-  source: z.literal("pixabay"),
+export const dayMenuSchema = z.object({
+  serviceDate: z.string(),
+  categories: z.array(menuCategorySchema),
+  stats: z.object({
+    totalCategories: z.number().int().nonnegative(),
+    totalDishes: z.number().int().nonnegative(),
+  }),
 });
 
-export const dishImageResponseSchema = z.object({
-  query: z.string(),
-  result: dishImageSchema.nullable(),
+export const weekMenuResponseSchema = z.object({
+  location: locationSchema,
+  fetchedAt: z.string(),
+  sourceUrl: z.string().url(),
+  isStale: z.boolean(),
+  warnings: z.array(z.string()),
+  days: z.array(dayMenuSchema),
 });
 
 export const locationsResponseSchema = z.object({
@@ -99,7 +104,7 @@ export type SustainabilityMetric = z.infer<typeof sustainabilityMetricSchema>;
 export type Dish = z.infer<typeof dishSchema>;
 export type MenuCategory = z.infer<typeof menuCategorySchema>;
 export type MenuResponse = z.infer<typeof menuResponseSchema>;
-export type DishImage = z.infer<typeof dishImageSchema>;
-export type DishImageResponse = z.infer<typeof dishImageResponseSchema>;
+export type DayMenu = z.infer<typeof dayMenuSchema>;
+export type WeekMenuResponse = z.infer<typeof weekMenuResponseSchema>;
 export type LocationsResponse = z.infer<typeof locationsResponseSchema>;
 export type HealthResponse = z.infer<typeof healthResponseSchema>;

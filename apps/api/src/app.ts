@@ -1,24 +1,21 @@
 import cors from "@fastify/cors";
 import {
-  dishImageResponseSchema,
   healthResponseSchema,
   locationsResponseSchema,
   menuResponseSchema,
+  weekMenuResponseSchema,
 } from "@mensa/shared";
 import Fastify from "fastify";
 
-import { ImageService, type ImageServiceShape } from "./image-service";
 import { DEFAULT_LOCATION_ID, listLocations } from "./locations";
 import { MenuService, type MenuServiceShape } from "./menu-service";
 
 interface BuildAppOptions {
   menuService?: MenuServiceShape;
-  imageService?: ImageServiceShape;
 }
 
 export async function buildApp({
   menuService = new MenuService(),
-  imageService = new ImageService(),
 }: BuildAppOptions = {}) {
   const app = Fastify({
     logger: false,
@@ -59,29 +56,6 @@ export async function buildApp({
     }),
   );
 
-  app.get("/api/v1/images/search", async (request, reply) => {
-    const { q = "" } = request.query as { q?: string };
-
-    try {
-      return dishImageResponseSchema.parse(
-        await imageService.searchDishImage(q),
-      );
-    } catch (error) {
-      const message = error instanceof Error ? error.message : "Unknown error";
-      const statusCode = message.startsWith("Image query")
-        ? 400
-        : message.startsWith("PIXABAY_API_KEY")
-          ? 503
-          : 502;
-
-      reply.code(statusCode);
-
-      return {
-        error: message,
-      };
-    }
-  });
-
   app.get("/api/v1/locations/:locationId/menu", async (request, reply) => {
     const { locationId } = request.params as { locationId: string };
     const { day = "today" } = request.query as { day?: string };
@@ -97,6 +71,27 @@ export async function buildApp({
         : message.startsWith("Invalid day")
           ? 400
           : 502;
+
+      reply.code(statusCode);
+
+      return {
+        error: message,
+      };
+    }
+  });
+
+  app.get("/api/v1/locations/:locationId/menu/week", async (request, reply) => {
+    const { locationId } = request.params as { locationId: string };
+    const { week = "this_week" } = request.query as { week?: string };
+
+    try {
+      const validWeek = week === "next_week" ? "next_week" : "this_week";
+      return weekMenuResponseSchema.parse(
+        await menuService.getWeekMenu(locationId, validWeek),
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      const statusCode = message.startsWith("Unsupported location") ? 404 : 502;
 
       reply.code(statusCode);
 
