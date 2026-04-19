@@ -1,0 +1,25 @@
+{
+  "name": "mensa-plan",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "concurrently -n api,web -c magenta,cyan \"npm:dev:api\" \"npm:dev:web\"",
+    "dev:api": "npm run dev --workspace @mensa/api",
+    "dev:web": "npm run dev --workspace @mensa/web",
+    "build": "npm run build --workspace @mensa/api && npm run build --workspace @mensa/web && npm run build --workspace @mensa/alexa",
+    "test": "npm run test --workspace @mensa/api && npm run test --workspace @mensa/web && npm run test --workspace @mensa/alexa",
+    "typecheck": "npm run typecheck --workspace @mensa/api && npm run typecheck --workspace @mensa/web && npm run typecheck --workspace @mensa/alexa && tsc --noEmit -p netlify/functions/tsconfig.json"
+  },
+  "dependencies": {
+    "alexa-verifier": "^4.0.0"
+  },
+  "devDependencies": {
+    "@netlify/functions": "^4.0.0",
+    "concurrently": "^9.2.1",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.3"
+  }
+}

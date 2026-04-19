@@ -1,0 +1,32 @@
+[build]
+  command = "npm run build"
+  publish = "apps/web/dist"
+
+[functions]
+  directory = "netlify/functions"
+  node_bundler = "esbuild"
+  included_files = [
+    "apps/api/src/**",
+    "apps/alexa/src/**",
+    "packages/shared/src/**"
+  ]
+
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/api/api/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/health/*"
+  to = "/.netlify/functions/api/health/:splat"
+  status = 200
+
+[[redirects]]
+  from = "/alexa"
+  to = "/.netlify/functions/alexa"
+  status = 200
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

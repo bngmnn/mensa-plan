@@ -1,0 +1,89 @@
+{
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "mensa plan hamburg",
+      "intents": [
+        {
+          "name": "GetMenuIntent",
+          "slots": [
+            {
+              "name": "day",
+              "type": "WeekdaySlotType"
+            }
+          ],
+          "samples": [
+            "was gibt es",
+            "was gibt es heute",
+            "was gibt es morgen",
+            "was gibt es am {day}",
+            "welches essen gibt es am {day}",
+            "welche gerichte gibt es {day}",
+            "mensa plan fuer {day}"
+          ]
+        },
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.NavigateHomeIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.FallbackIntent",
+          "samples": []
+        }
+      ],
+      "types": [
+        {
+          "name": "WeekdaySlotType",
+          "values": [
+            {
+              "name": {
+                "value": "heute"
+              }
+            },
+            {
+              "name": {
+                "value": "morgen"
+              }
+            },
+            {
+              "name": {
+                "value": "montag"
+              }
+            },
+            {
+              "name": {
+                "value": "dienstag"
+              }
+            },
+            {
+              "name": {
+                "value": "mittwoch"
+              }
+            },
+            {
+              "name": {
+                "value": "donnerstag"
+              }
+            },
+            {
+              "name": {
+                "value": "freitag"
+              }
+            }
+          ]
+        }
+      ]
+    }
+  }
+}

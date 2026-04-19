@@ -1,0 +1,32 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "de-DE": {
+          "name": "Mensa Plan Hamburg",
+          "summary": "Liest den aktuellen Mensa Plan aus deiner API vor.",
+          "description": "Alexa Skill fuer den Mensa Plan. Fragt die vorhandene API nach Gerichten fuer heute, morgen oder einen Wochentag.",
+          "examplePhrases": [
+            "Alexa, oeffne mensa plan hamburg",
+            "Alexa, frage mensa plan hamburg was es heute gibt",
+            "Alexa, frage mensa plan hamburg was es am Freitag gibt"
+          ],
+          "keywords": ["Mensa", "Speiseplan", "Hamburg"]
+        }
+      },
+      "isAvailableWorldwide": false,
+      "distributionCountries": ["DE"],
+      "category": "KNOWLEDGE_AND_TRIVIA",
+      "testingInstructions": "Setze MENSA_API_BASE_URL auf deine oeffentlich erreichbare API und pruefe heute, morgen und Freitag.",
+      "distributionMode": "PRIVATE"
+    },
+    "apis": {
+      "custom": {
+        "endpoint": {
+          "uri": "ask-custom-mensa-plan-default"
+        }
+      }
+    },
+    "manifestVersion": "1.0"
+  }
+}
